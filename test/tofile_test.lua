@@ -30,18 +30,19 @@ local err, eno
 f, err, eno = tofile(-1)
 assert.is_nil(f)
 assert.is_string(err)
-assert.equal(errno[eno], errno.EINVAL)
+assert.equal_string(errno[eno], errno.EBADF)
 
 -- test that return error if mode is invalid
 f, err, eno = tofile(fd, 'hello')
 assert.is_nil(f)
 assert.is_string(err)
-assert.equal(errno[eno], errno.EINVAL)
+assert.equal_string(errno[eno], errno.EINVAL)
 
 -- test that return error if io.tmpfile is not defined
 package.loaded['io.tofile'] = nil
 _G.io.tmpfile = nil
 tofile = require('io.tofile')
+f, err, eno = tofile(fd, 'hello')
 assert.is_nil(f)
 assert.is_string(err)
-assert.equal(errno[eno], errno.ENOTSUP)
+assert.equal_string(errno[eno], errno.ENOTSUP)
