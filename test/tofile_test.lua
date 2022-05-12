@@ -1,5 +1,6 @@
 local assert = require('assert')
 local errno = require('errno')
+local errno_set = require('errno.set')
 local tofile = require('io.tofile')
 local fileno = require('io.fileno')
 
@@ -26,23 +27,33 @@ newf = assert(tofile(fd))
 newf:close()
 
 -- test that return error if fd is invalid
-local err, eno
-f, err, eno = tofile(-1)
+local err
+f, err = tofile(-1)
 assert.is_nil(f)
-assert.is_string(err)
-assert.equal_string(errno[eno], errno.EBADF)
+assert.equal(err.type, errno.EBADF)
 
 -- test that return error if mode is invalid
-f, err, eno = tofile(fd, 'hello')
+f, err = tofile(fd, 'hello')
 assert.is_nil(f)
-assert.is_string(err)
-assert.equal_string(errno[eno], errno.EINVAL)
+assert.equal(err.type, errno.EINVAL)
 
--- test that return error if io.tmpfile is not defined
+-- test that return error if io.tmpfile function returns error
+local tmpfile = io.tmpfile
+_G.io.tmpfile = function()
+    errno_set(errno.EMFILE.code)
+    return nil, 'failed'
+end
 package.loaded['io.tofile'] = nil
-_G.io.tmpfile = nil
 tofile = require('io.tofile')
-f, err, eno = tofile(fd, 'hello')
+f, err = tofile(fd)
 assert.is_nil(f)
-assert.is_string(err)
-assert.equal_string(errno[eno], errno.ENOTSUP)
+assert.equal(err.type, errno.EMFILE)
+
+-- test that throws an error if io.tmpfile function is not defined
+_G.io.tmpfile = nil
+package.loaded['io.tofile'] = nil
+err = assert.throws(function()
+    tofile = require('io.tofile')
+end)
+assert.match(err, '"io.tmpfile" function not found')
+

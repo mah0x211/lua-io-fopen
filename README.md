@@ -14,9 +14,12 @@ luarocks install io-tofile
 
 ---
 
+## Error Handling
+
+the following functions return the `error` object created by https://github.com/mah0x211/lua-errno module.
 
 
-## f, err, errno = tofile( fd [, mode] )
+## f, err = tofile( fd [, mode] )
 
 create the lua file handle from the file descriptor.
 
@@ -34,8 +37,8 @@ create the lua file handle from the file descriptor.
 **Returns**
 
 - `f:file`: lua file handle.
-- `err:string`: error string.
-- `errno:integer`: error number.
+- `err:error`: error object.
+
 
 **e.g.**
 
