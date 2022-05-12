@@ -25,7 +25,7 @@
 #include <string.h>
 #include <unistd.h>
 // lua
-#include <lauxhlib.h>
+#include <lua_errno.h>
 
 static inline FILE *fd2fp(int fd, const char *mode)
 {
@@ -43,8 +43,6 @@ static inline FILE *fd2fp(int fd, const char *mode)
     return NULL;
 }
 
-static int REF_IO_TMPFILE = LUA_NOREF;
-
 static inline void swap_fp(lua_State *L, FILE *fp)
 {
 #if LUA_VERSION_NUM >= 502
@@ -61,6 +59,8 @@ static inline void swap_fp(lua_State *L, FILE *fp)
 #endif
 }
 
+static int REF_IO_TMPFILE = LUA_NOREF;
+
 static int tofile_lua(lua_State *L)
 {
     int fd           = lauxh_checkinteger(L, 1);
@@ -68,27 +68,21 @@ static int tofile_lua(lua_State *L)
     FILE *fp         = NULL;
     int rc           = 0;
 
-    if (REF_IO_TMPFILE == LUA_NOREF) {
-        lua_pushnil(L);
-        lua_pushstring(L, "io.tmpfile function not found");
-        lua_pushinteger(L, ENOTSUP);
-        return 3;
-    }
-
     lua_settop(L, 0);
     lauxh_pushref(L, REF_IO_TMPFILE);
     lua_call(L, 0, LUA_MULTRET);
     rc = lua_gettop(L);
     if (rc != 1) {
-        return rc;
+        lua_pushnil(L);
+        lua_errno_new(L, errno, "tofile");
+        return 2;
     }
 
     fp = fd2fp(fd, mode);
     if (fp == NULL) {
         lua_pushnil(L);
-        lua_pushstring(L, strerror(errno));
-        lua_pushinteger(L, errno);
-        return 3;
+        lua_errno_new(L, errno, "tofile");
+        return 2;
     }
 
     swap_fp(L, fp);
@@ -98,6 +92,8 @@ static int tofile_lua(lua_State *L)
 
 LUALIB_API int luaopen_io_tofile(lua_State *L)
 {
+    lua_errno_loadlib(L);
+
     REF_IO_TMPFILE = LUA_NOREF;
     lauxh_getglobal(L, "io");
     if (lua_istable(L, -1)) {
@@ -106,6 +102,9 @@ LUALIB_API int luaopen_io_tofile(lua_State *L)
         if (lua_isfunction(L, -1)) {
             REF_IO_TMPFILE = lauxh_ref(L);
         }
+    }
+    if (REF_IO_TMPFILE == LUA_NOREF) {
+        return luaL_error(L, "\"io.tmpfile\" function not found");
     }
 
     lua_pushcfunction(L, tofile_lua);

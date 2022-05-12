@@ -1,20 +1,21 @@
-package = 'io-tofile'
-version = 'dev-1'
+package = "io-tofile"
+version = "dev-1"
 source = {
-    url = 'git+https://github.com/mah0x211/lua-io-tofile.git',
+    url = "git+https://github.com/mah0x211/lua-io-tofile.git",
 }
 description = {
-    summary = 'create the lua file handle from the file descriptor.',
-    homepage = 'https://github.com/mah0x211/lua-io-tofile',
-    license = 'MIT/X11',
-    maintainer = 'Masatoshi Fukunaga',
+    summary = "create the lua file handle from the file descriptor.",
+    homepage = "https://github.com/mah0x211/lua-io-tofile",
+    license = "MIT/X11",
+    maintainer = "Masatoshi Fukunaga",
 }
 dependencies = {
-    'lua >= 5.1',
-    'lauxhlib >= 0.3.1',
+    "lua >= 5.1",
+    "errno >= 0.3.0",
+    "lauxhlib >= 0.3.1",
 }
 build = {
-    type = 'make',
+    type = "make",
     build_variables = {
         LIB_EXTENSION   = "$(LIB_EXTENSION)",
         CFLAGS          = "$(CFLAGS)",
