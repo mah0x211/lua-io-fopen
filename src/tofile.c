@@ -23,6 +23,8 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 // lua
 #include <lua_errno.h>
@@ -36,15 +38,20 @@ static inline FILE *fd2fp(int fd, const char *mode)
         return NULL;
     } else if ((fp = fdopen(fd, mode))) {
         return fp;
-    } else if (fd > 0) {
-        close(fd);
     }
+    close(fd);
 
     return NULL;
 }
 
-static inline void swap_fp(lua_State *L, FILE *fp)
+static inline int swap_fp(lua_State *L, FILE *fp)
 {
+    if (!fp) {
+        lua_pushnil(L);
+        lua_errno_new(L, errno, "tofile");
+        return 2;
+    }
+
 #if LUA_VERSION_NUM >= 502
     luaL_Stream *stream = luaL_checkudata(L, -1, LUA_FILEHANDLE);
     FILE *tmpfp         = stream->f;
@@ -57,37 +64,84 @@ static inline void swap_fp(lua_State *L, FILE *fp)
     fclose(*tmpfp);
     *tmpfp = fp;
 #endif
+
+    return 1;
 }
 
 static int REF_IO_TMPFILE = LUA_NOREF;
 
-static int tofile_lua(lua_State *L)
+#define MKSTEMP_LUA(L)                                                         \
+ do {                                                                          \
+  lua_settop((L), 0);                                                          \
+  lauxh_pushref((L), REF_IO_TMPFILE);                                          \
+  lua_call((L), 0, LUA_MULTRET);                                               \
+  if (lua_gettop((L)) != 1) {                                                  \
+   lua_pushnil((L));                                                           \
+   lua_errno_new((L), errno, "tofile");                                        \
+   return 2;                                                                   \
+  }                                                                            \
+ } while (0)
+
+static inline int isfile(int fd, int notfile_errno)
+{
+    struct stat buf = {0};
+    switch (fd) {
+    case STDIN_FILENO:
+    case STDERR_FILENO:
+    case STDOUT_FILENO:
+        return 1;
+
+    default:
+        if (fstat(fd, &buf) == -1) {
+            // got error
+            return 0;
+        } else if ((buf.st_mode & S_IFMT) != S_IFREG) {
+            errno = notfile_errno;
+            return 0;
+        }
+        return 1;
+    }
+}
+
+static int fdopen_lua(lua_State *L)
 {
     int fd           = lauxh_checkinteger(L, 1);
     const char *mode = lauxh_optstring(L, 2, "r");
-    FILE *fp         = NULL;
-    int rc           = 0;
 
-    lua_settop(L, 0);
-    lauxh_pushref(L, REF_IO_TMPFILE);
-    lua_call(L, 0, LUA_MULTRET);
-    rc = lua_gettop(L);
-    if (rc != 1) {
+    if (!isfile(fd, EINVAL)) {
         lua_pushnil(L);
         lua_errno_new(L, errno, "tofile");
         return 2;
     }
+    MKSTEMP_LUA(L);
+    return swap_fp(L, fd2fp(fd, mode));
+}
 
-    fp = fd2fp(fd, mode);
-    if (fp == NULL) {
-        lua_pushnil(L);
-        lua_errno_new(L, errno, "tofile");
-        return 2;
+static int fopen_lua(lua_State *L)
+{
+    const char *pathname = lauxh_checkstring(L, 1);
+    const char *mode     = lauxh_optstring(L, 2, "r");
+    FILE *fp             = NULL;
+
+    MKSTEMP_LUA(L);
+    fp = fopen(pathname, mode);
+    if (fp) {
+        if (!isfile(fileno(fp), ENOENT)) {
+            fclose(fp);
+            lua_pushnil(L);
+            lua_errno_new(L, errno, "tofile");
+            return 2;
+        }
     }
+    return swap_fp(L, fp);
+}
 
-    swap_fp(L, fp);
-
-    return 1;
+static int tofile_lua(lua_State *L)
+{
+    if (lua_type(L, 1) == LUA_TSTRING) {
+        return fopen_lua(L);
+    }
+    return fdopen_lua(L);
 }
 
 LUALIB_API int luaopen_io_tofile(lua_State *L)
