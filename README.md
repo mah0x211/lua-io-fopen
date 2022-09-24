@@ -3,7 +3,7 @@
 [![test](https://github.com/mah0x211/lua-io-tofile/actions/workflows/test.yml/badge.svg)](https://github.com/mah0x211/lua-io-tofile/actions/workflows/test.yml)
 [![codecov](https://codecov.io/gh/mah0x211/lua-io-tofile/branch/master/graph/badge.svg)](https://codecov.io/gh/mah0x211/lua-io-tofile)
 
-create the lua file handle from the file descriptor.
+create the lua file handle from a pathname or descriptor of the file.
 
 
 ## Installation
@@ -19,13 +19,13 @@ luarocks install io-tofile
 the following functions return the `error` object created by https://github.com/mah0x211/lua-errno module.
 
 
-## f, err = tofile( fd [, mode] )
+## f, err = tofile( file [, mode] )
 
-create the lua file handle from the file descriptor.
+open the lua file handle from a pathname or descriptor of the file.
 
 **Parameters**
 
-- `fd:integer`: the file descriptor.
+- `file:string|integer`: a pathname or descriptor of the file.
 - `mode:string`: the mode string can be any of the following:
   - `'r'`: read mode (the default);
   - `'w'`: write mode;
@@ -40,17 +40,18 @@ create the lua file handle from the file descriptor.
 - `err:error`: error object.
 
 
-**e.g.**
+## Usage
 
 ```lua
 local tofile = require('io.tofile')
 local fileno = require('io.fileno')
-local f = assert(io.open('./test.txt', 'w'))
-local fd = fileno(f)
 
--- returns new file handle from the file descriptor
-local newf = assert(tofile(fd))
--- file descriptor is duplicated with the `dup` function
+-- open a file
+local f = assert(tofile('./test.txt'))
+
+-- new file handle from the file descriptor
+-- file descriptor is duplicated with the `dup` syscall
+local fd = fileno(f)
+local newf = assert(tofile(fileno(f)))
 print(fileno(newf)) 
 ```
-
