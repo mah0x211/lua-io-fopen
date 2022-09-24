@@ -83,12 +83,17 @@ function testcase.invalid_fd()
     f = assert(io.open('test/'))
     f, err = fopen(fileno(f))
     assert.is_nil(f)
-    assert.equal(err.type, errno.EINVAL)
+    assert.equal(err.type, errno.EISDIR)
 end
 
 function testcase.invalid_pathname()
-    -- test that return error if pathname of file is not a file
+    -- test that return error if pathname points to directory
     local f, err = fopen('test/')
+    assert.is_nil(f)
+    assert.equal(err.type, errno.EISDIR)
+
+    -- test that return error if pathname is not found
+    f, err = fopen('test/noent.txt')
     assert.is_nil(f)
     assert.equal(err.type, errno.ENOENT)
 end

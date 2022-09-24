@@ -82,7 +82,7 @@ static int REF_IO_TMPFILE = LUA_NOREF;
   }                                                                            \
  } while (0)
 
-static inline int isfile(int fd, int notfile_errno)
+static inline int isfile(int fd)
 {
     struct stat buf = {0};
     switch (fd) {
@@ -95,11 +95,21 @@ static inline int isfile(int fd, int notfile_errno)
         if (fstat(fd, &buf) == -1) {
             // got error
             return 0;
-        } else if ((buf.st_mode & S_IFMT) != S_IFREG) {
-            errno = notfile_errno;
-            return 0;
         }
-        return 1;
+        switch (buf.st_mode & S_IFMT) {
+        case S_IFDIR: // directory
+            errno = EISDIR;
+            return 0;
+
+        case S_IFREG:  // file
+        case S_IFCHR:  // character device
+        case S_IFBLK:  // block device
+        case S_IFSOCK: // socket
+        case S_IFIFO:  // fifo
+        // case S_IFLNK:  // NOTE:  cannot open a descriptor from symbolic link
+        default:
+            return 1;
+        }
     }
 }
 
@@ -108,7 +118,7 @@ static int fdopen_lua(lua_State *L)
     int fd           = lauxh_checkinteger(L, 1);
     const char *mode = lauxh_optstring(L, 2, "r");
 
-    if (!isfile(fd, EINVAL)) {
+    if (!isfile(fd)) {
         lua_pushnil(L);
         lua_errno_new(L, errno, "fopen");
         return 2;
@@ -127,7 +137,7 @@ static int fopen_lua(lua_State *L)
         MKSTEMP_LUA(L);
         fp = fopen(pathname, mode);
         if (fp) {
-            if (!isfile(fileno(fp), ENOENT)) {
+            if (!isfile(fileno(fp))) {
                 fclose(fp);
                 lua_pushnil(L);
                 lua_errno_new(L, errno, "fopen");
