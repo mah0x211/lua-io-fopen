@@ -31,7 +31,7 @@ jobs:
     -
       name: Install
       run: |
-        luarocks make IO_TOFILE_COVERAGE=1
+        luarocks make rockspecs/io-fopen-dev-1.rockspec IO_FOPEN_COVERAGE=1
     -
       name: Install Tools
       run: |
@@ -42,7 +42,7 @@ jobs:
     -
       name: Run Test
       run: |
-        lua ./test/tofile_test.lua
+        lua ./test/fopen_test.lua
     -
       name: Generate coverage reports
       run: |

@@ -1,7 +1,7 @@
 local assert = require('assert')
 local errno = require('errno')
 local errno_set = require('errno.set')
-local tofile = require('io.tofile')
+local fopen = require('io.fopen')
 local fileno = require('io.fileno')
 
 local testfuncs = {}
@@ -25,7 +25,7 @@ function testcase.fd_to_file()
 
     -- test that wraps a fd to new lua file handle
     local fd = fileno(f)
-    local newf = assert(tofile(fd, 'a+'))
+    local newf = assert(fopen(fd, 'a+'))
     assert.not_equal(fileno(newf), fd)
     f:close()
 
@@ -40,7 +40,7 @@ function testcase.fd_to_file_without_mode()
     -- test that convert to file without mode argument
     local f = assert(io.tmpfile())
     local fd = fileno(f)
-    local newf = assert(tofile(fd))
+    local newf = assert(fopen(fd))
 
     -- confirm that data cannot be written
     assert(not newf:write(' world!'))
@@ -53,7 +53,7 @@ function testcase.pathname_to_file()
     f:close()
 
     -- test that open a file
-    f = assert(tofile('test/example.txt', 'a+'))
+    f = assert(fopen('test/example.txt', 'a+'))
     -- confirm that data can be written
     assert(f:write(' world!'))
     assert(f:seek('set', 0))
@@ -67,7 +67,7 @@ function testcase.pathname_to_file_without_mode()
     f:close()
 
     -- test that open a file
-    f = assert(tofile('test/example.txt'))
+    f = assert(fopen('test/example.txt'))
     -- confirm that data cannot be written
     assert(not f:write(' world!'))
     f:close()
@@ -75,27 +75,27 @@ end
 
 function testcase.invalid_fd()
     -- test that return error if fd is invalid
-    local f, err = tofile(-1)
+    local f, err = fopen(-1)
     assert.is_nil(f)
     assert.equal(err.type, errno.EBADF)
 
     -- test that return error if not file fd
     f = assert(io.open('test/'))
-    f, err = tofile(fileno(f))
+    f, err = fopen(fileno(f))
     assert.is_nil(f)
     assert.equal(err.type, errno.EINVAL)
 end
 
 function testcase.invalid_pathname()
     -- test that return error if pathname of file is not a file
-    local f, err = tofile('test/')
+    local f, err = fopen('test/')
     assert.is_nil(f)
     assert.equal(err.type, errno.ENOENT)
 end
 
 function testcase.invalid_mode()
     -- test that return error if mode is invalid
-    local f, err = tofile(1, 'hello')
+    local f, err = fopen(1, 'hello')
     assert.is_nil(f)
     assert.equal(err.type, errno.EINVAL)
 end
@@ -108,9 +108,9 @@ function testcase.error_from_io_tmpfile()
         errno_set(errno.EMFILE.code)
         return nil, 'failed'
     end
-    package.loaded['io.tofile'] = nil
-    tofile = require('io.tofile')
-    local f, err = tofile(1)
+    package.loaded['io.fopen'] = nil
+    fopen = require('io.fopen')
+    local f, err = fopen(1)
     _G.io.tmpfile = tmpfile
     assert.is_nil(f)
     assert.equal(err.type, errno.EMFILE)
@@ -121,9 +121,9 @@ function testcase.throw_error_without_io_tmpfile()
 
     -- test that throws an error if io.tmpfile function is not defined
     _G.io.tmpfile = nil
-    package.loaded['io.tofile'] = nil
+    package.loaded['io.fopen'] = nil
     local err = assert.throws(function()
-        tofile = require('io.tofile')
+        fopen = require('io.fopen')
     end)
     _G.io.tmpfile = tmpfile
     assert.match(err, '"io.tmpfile" function not found')

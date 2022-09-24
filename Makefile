@@ -2,7 +2,7 @@ SRCS=$(wildcard src/*.c)
 SOBJ=$(SRCS:.c=.$(LIB_EXTENSION))
 INSTALL?=install
 
-ifdef IO_TOFILE_COVERAGE
+ifdef IO_FOPEN_COVERAGE
 COVFLAGS=--coverage
 endif
 

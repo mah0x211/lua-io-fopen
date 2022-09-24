@@ -1,5 +1,5 @@
 /**
- *  Copyright (C) 2021 Masatoshi Fukunaga
+ *  Copyright (C) 2022 Masatoshi Fukunaga
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
  *  of this software and associated documentation files (the "Software"), to
@@ -48,7 +48,7 @@ static inline int swap_fp(lua_State *L, FILE *fp)
 {
     if (!fp) {
         lua_pushnil(L);
-        lua_errno_new(L, errno, "tofile");
+        lua_errno_new(L, errno, "fopen");
         return 2;
     }
 
@@ -77,7 +77,7 @@ static int REF_IO_TMPFILE = LUA_NOREF;
   lua_call((L), 0, LUA_MULTRET);                                               \
   if (lua_gettop((L)) != 1) {                                                  \
    lua_pushnil((L));                                                           \
-   lua_errno_new((L), errno, "tofile");                                        \
+   lua_errno_new((L), errno, "fopen");                                         \
    return 2;                                                                   \
   }                                                                            \
  } while (0)
@@ -110,7 +110,7 @@ static int fdopen_lua(lua_State *L)
 
     if (!isfile(fd, EINVAL)) {
         lua_pushnil(L);
-        lua_errno_new(L, errno, "tofile");
+        lua_errno_new(L, errno, "fopen");
         return 2;
     }
     MKSTEMP_LUA(L);
@@ -119,32 +119,27 @@ static int fdopen_lua(lua_State *L)
 
 static int fopen_lua(lua_State *L)
 {
-    const char *pathname = lauxh_checkstring(L, 1);
-    const char *mode     = lauxh_optstring(L, 2, "r");
-    FILE *fp             = NULL;
-
-    MKSTEMP_LUA(L);
-    fp = fopen(pathname, mode);
-    if (fp) {
-        if (!isfile(fileno(fp), ENOENT)) {
-            fclose(fp);
-            lua_pushnil(L);
-            lua_errno_new(L, errno, "tofile");
-            return 2;
-        }
-    }
-    return swap_fp(L, fp);
-}
-
-static int tofile_lua(lua_State *L)
-{
     if (lua_type(L, 1) == LUA_TSTRING) {
-        return fopen_lua(L);
+        const char *pathname = lauxh_checkstring(L, 1);
+        const char *mode     = lauxh_optstring(L, 2, "r");
+        FILE *fp             = NULL;
+
+        MKSTEMP_LUA(L);
+        fp = fopen(pathname, mode);
+        if (fp) {
+            if (!isfile(fileno(fp), ENOENT)) {
+                fclose(fp);
+                lua_pushnil(L);
+                lua_errno_new(L, errno, "fopen");
+                return 2;
+            }
+        }
+        return swap_fp(L, fp);
     }
     return fdopen_lua(L);
 }
 
-LUALIB_API int luaopen_io_tofile(lua_State *L)
+LUALIB_API int luaopen_io_fopen(lua_State *L)
 {
     lua_errno_loadlib(L);
 
@@ -161,6 +156,6 @@ LUALIB_API int luaopen_io_tofile(lua_State *L)
         return luaL_error(L, "\"io.tmpfile\" function not found");
     }
 
-    lua_pushcfunction(L, tofile_lua);
+    lua_pushcfunction(L, fopen_lua);
     return 1;
 }

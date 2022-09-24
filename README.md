@@ -1,7 +1,7 @@
-# lua-io-tofile
+# lua-io-fopen
 
-[![test](https://github.com/mah0x211/lua-io-tofile/actions/workflows/test.yml/badge.svg)](https://github.com/mah0x211/lua-io-tofile/actions/workflows/test.yml)
-[![codecov](https://codecov.io/gh/mah0x211/lua-io-tofile/branch/master/graph/badge.svg)](https://codecov.io/gh/mah0x211/lua-io-tofile)
+[![test](https://github.com/mah0x211/lua-io-fopen/actions/workflows/test.yml/badge.svg)](https://github.com/mah0x211/lua-io-fopen/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/mah0x211/lua-io-fopen/branch/master/graph/badge.svg)](https://codecov.io/gh/mah0x211/lua-io-fopen)
 
 create the lua file handle from a pathname or descriptor of the file.
 
@@ -9,7 +9,7 @@ create the lua file handle from a pathname or descriptor of the file.
 ## Installation
 
 ```
-luarocks install io-tofile
+luarocks install io-fopen
 ```
 
 ---
@@ -19,7 +19,7 @@ luarocks install io-tofile
 the following functions return the `error` object created by https://github.com/mah0x211/lua-errno module.
 
 
-## f, err = tofile( file [, mode] )
+## f, err = fopen( file [, mode] )
 
 open the lua file handle from a pathname or descriptor of the file.
 
@@ -43,15 +43,15 @@ open the lua file handle from a pathname or descriptor of the file.
 ## Usage
 
 ```lua
-local tofile = require('io.tofile')
+local fopen = require('io.fopen')
 local fileno = require('io.fileno')
 
 -- open a file
-local f = assert(tofile('./test.txt'))
+local f = assert(fopen('./test.txt'))
 
 -- new file handle from the file descriptor
 -- file descriptor is duplicated with the `dup` syscall
 local fd = fileno(f)
-local newf = assert(tofile(fileno(f)))
+local newf = assert(fopen(fileno(f)))
 print(fileno(newf)) 
 ```
