@@ -23,6 +23,10 @@ the following functions return the `error` object created by https://github.com/
 
 open the lua file handle from a pathname or descriptor of the file.
 
+**NOTE**
+
+this function uses the `dup` system call internally to duplicate a file descriptor and create a new file handle from it.
+
 **Parameters**
 
 - `file:string|integer`: a pathname or descriptor of the file.
